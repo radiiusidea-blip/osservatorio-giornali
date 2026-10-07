@@ -138,6 +138,12 @@ def giro():
     migra(con)
     adesso = dt.datetime.now()
     ts = int(adesso.timestamp())
+    # due avvii ravvicinati (orologio di Supabase + quello di GitHub): il secondo non fa nulla
+    ultimo = con.execute("SELECT MAX(ts) FROM giri").fetchone()[0]
+    if ultimo and ts - ultimo < 8 * 60:
+        print(f"giro saltato: l'ultimo è di {(ts - ultimo) // 60} minuti fa")
+        con.close()
+        return None
     gid = con.execute("INSERT INTO giri(ts, quando) VALUES(?,?)", (ts, adesso.isoformat(timespec="minutes"))).lastrowid
 
     risultati = {}
