@@ -5,7 +5,13 @@ prima fila adesso · rapporto del giorno · interazioni · modelli informativi �
 
 ## Dove gira
 - **Motore**: GitHub Actions, repository pubblico `radiiusidea-blip/osservatorio-giornali`,
-  workflow `Raccolta` ai minuti 4/19/34/49 di ogni ora. Non dipende dal Mac.
+  workflow `Raccolta`. Non dipende dal Mac.
+- **Orologio**: pg_cron su Supabase «atelier» (job `osservatorio-giornali`, minuti 4/19/34/49)
+  chiama `orologio.avvia_osservatorio()`, che avvia il workflow con il token del Vault
+  `github_osservatorio` (fine-grained, solo Actions di questo repository). L'orologio di GitHub,
+  inaffidabile, resta come riserva; i giri a meno di 8 minuti dal precedente vengono saltati.
+  Quando il token scade: crearne uno nuovo e sostituire il segreto nel Vault.
+- **Archivio tra un giro e l'altro**: cache di GitHub; Supabase ne tiene la copia di sicurezza.
 - **Archivio**: Supabase progetto «atelier», bucket privato `osservatorio-archivio`
   (osservatorio.sqlite.gz), accesso solo tramite la funzione edge `osservatorio-archivio`
   con la chiave segreta (file `.chiave` qui, secret `OSSERVATORIO_CHIAVE` su GitHub).
