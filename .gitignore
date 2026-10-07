@@ -1,0 +1,5 @@
+dati/
+.chiave
+sito/dati.js
+__pycache__/
+.DS_Store

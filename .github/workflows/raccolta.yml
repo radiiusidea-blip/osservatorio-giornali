@@ -1,0 +1,52 @@
+name: Raccolta
+
+# Ogni 15 minuti: legge le testate, aggiorna analisi e rapporti, salva l'archivio su Supabase.
+# Gira su GitHub, quindi non dipende dal Mac acceso.
+on:
+  schedule:
+    - cron: "4,19,34,49 * * * *"
+  workflow_dispatch:
+
+# un giro alla volta: due giri insieme si sovrascriverebbero l'archivio
+concurrency:
+  group: raccolta
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  giro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      TZ: Europe/Rome
+      OSSERVATORIO_CHIAVE: ${{ secrets.OSSERVATORIO_CHIAVE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scarica l'archivio
+        run: python3 archivio.py scarica
+
+      - name: Leggi le testate
+        run: python3 -W ignore raccogli.py
+
+      - name: Analisi e rapporti
+        run: python3 -W ignore analisi.py
+
+      - name: Salva l'archivio e pubblica il pannello
+        run: python3 archivio.py carica
+
+      # GitHub sospende i giri programmati dopo 60 giorni senza attività nel repository:
+      # ogni 40 giorni un commit vuoto lo tiene sveglio
+      - name: Tieni attivo il repository
+        if: always()
+        run: |
+          ultimo=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - ultimo )) -gt 3456000 ]; then
+            git config user.name "osservatorio"
+            git config user.email "osservatorio@users.noreply.github.com"
+            git commit --allow-empty -q -m "Tieni attivi i giri programmati"
+            git push -q
+          fi

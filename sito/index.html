@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Osservatorio Giornali</title>
+<meta http-equiv="refresh" content="300">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// dati dal cloud (aggiornati ogni 15 minuti anche a Mac spento); se non raggiungibili, la copia locale
+document.write('<script src="https://dpnafvyugzqqwicvenwp.supabase.co/storage/v1/object/public/osservatorio-pannello/dati.js?t=' + Math.floor(Date.now() / 60000) + '"><\/script>');
+</script>
+<script>if (!window.DATI) document.write('<script src="dati.js"><\/script>');</script>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f6f6f4; --surface:#fcfcfb; --surface-2:#f0efec; --line:#e2e1dd;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#8a8984;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948; --other:#b9b8b2;
+  --seq-0:#f0efec; --seq-1:#cde2fb; --seq-2:#86b6ef; --seq-3:#3987e5; --seq-4:#1c5cab; --seq-5:#0d366b;
+  --warn:#b25e00;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#111110; --surface:#1a1a19; --surface-2:#242422; --line:#33332f;
+  --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#8f8e86;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --other:#5c5b56;
+  --seq-0:#242422; --seq-1:#104281; --seq-2:#1c5cab; --seq-3:#2a78d6; --seq-4:#6da7ec; --seq-5:#b7d3f6;
+  --warn:#f0a040;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111110; --surface:#1a1a19; --surface-2:#242422; --line:#33332f;
+  --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#8f8e86;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --other:#5c5b56;
+  --seq-0:#242422; --seq-1:#104281; --seq-2:#1c5cab; --seq-3:#2a78d6; --seq-4:#6da7ec; --seq-5:#b7d3f6;
+  --warn:#f0a040;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.testa{max-width:1280px;margin:0 auto;padding:14px 20px 0;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+.testa h1{font-size:19px;margin:0;letter-spacing:-.01em}
+.stato{color:var(--ink-2);font-size:13px}
+.stato b{color:var(--ink)}
+nav{max-width:1280px;margin:0 auto;padding:8px 14px 0;display:flex;gap:2px;overflow-x:auto}
+nav button{border:0;background:none;color:var(--ink-2);font:inherit;font-size:14px;padding:9px 12px 11px;border-radius:10px 10px 0 0;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink);font-weight:600}
+main{max-width:1280px;margin:0 auto;padding:22px 20px 60px}
+section.scheda{display:none}
+section.scheda.attiva{display:block}
+h2{font-size:24px;letter-spacing:-.02em;margin:4px 0 6px}
+h3{font-size:16px;margin:0 0 10px}
+.sotto{color:var(--ink-2);margin:0 0 18px;max-width:780px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.griglia{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr))}
+.g3{grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr))}
+.muto{color:var(--ink-3);font-size:13px}
+.etich{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.pallino{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:0}
+ol.classifica{list-style:none;margin:0;padding:0}
+ol.classifica li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;padding:11px 0;border-top:1px solid var(--line);align-items:start}
+ol.classifica li:first-child{border-top:0}
+.num{font-variant-numeric:tabular-nums;color:var(--ink-3);font-weight:600;font-size:18px;line-height:1.2}
+.tit{font-weight:600;line-height:1.3}
+.meta{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.val{font-variant-numeric:tabular-nums;font-weight:600;text-align:right;white-space:nowrap}
+.testata h3{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.testata ol{margin:0;padding:0;list-style:none}
+.testata li{padding:7px 0;border-top:1px solid var(--line);font-size:14px;display:grid;grid-template-columns:22px 1fr;gap:6px}
+.testata li:first-child{border-top:0}
+.testata li.apre{font-weight:600;font-size:15px}
+.testata a{text-decoration:none}.testata a:hover{text-decoration:underline}
+.avviso{border-left:3px solid var(--warn);background:var(--surface);padding:12px 16px;border-radius:8px;margin:0 0 16px;color:var(--ink-2)}
+.barra-filtri{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px}
+select{font:inherit;font-size:14px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.grafico{position:relative;height:340px}
+.grafico.alto{height:560px}
+.legenda{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink-2);margin:0 0 10px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px 8px;border-top:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--ink-2);font-size:12px;border-top:0}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.scorri{overflow-x:auto}
+.mat td{padding:0;border:2px solid var(--surface);width:28px;height:26px;text-align:center;font-size:10.5px;font-variant-numeric:tabular-nums}
+.mat th{font-size:11px;font-weight:500;white-space:nowrap;padding:2px 6px}
+.mat th.v{writing-mode:vertical-rl;transform:rotate(180deg);height:120px;vertical-align:bottom}
+.modello{border-top:1px solid var(--line);padding:12px 0}.modello:first-child{border-top:0}
+.cause{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--ink-2)}
+.metodo p,.metodo li{max-width:820px;color:var(--ink-2)}
+.metodo h3{margin-top:24px}
+.pila{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px;margin-top:6px}
+.pila span{display:block;height:100%}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12.5px;padding:6px 9px;border-radius:8px;max-width:320px;z-index:20;display:none}
+@media (max-width:640px){main{padding:16px 16px 50px}.testa{padding:12px 16px 0}h2{font-size:21px}.grafico{height:300px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="testa">
+    <h1>Osservatorio Giornali</h1>
+    <span class="stato" id="stato"></span>
+  </div>
+  <nav role="tablist" id="schede">
+    <button role="tab" data-s="adesso" aria-selected="true">Adesso</button>
+    <button role="tab" data-s="rapporto">Rapporto del giorno</button>
+    <button role="tab" data-s="interazioni">Interazioni</button>
+    <button role="tab" data-s="modelli">Modelli informativi</button>
+    <button role="tab" data-s="cadute">Cadute</button>
+    <button role="tab" data-s="metodo">Metodo</button>
+  </nav>
+</header>
+<main>
+
+<section class="scheda attiva" id="s-adesso">
+  <h2>In prima fila adesso</h2>
+  <p class="sotto">Le notizie più in evidenza sulle homepage nazionali all'ultima lettura. Il punteggio somma la posizione che ogni testata dà alla notizia (apertura = 1, secondo titolo = ½, …) su una scala da 0 a 10.</p>
+  <div class="griglia g2">
+    <div class="card"><h3>Classifica nazionale</h3><ol class="classifica" id="naz-adesso"></ol></div>
+    <div class="card"><h3>Peso dei temi in prima fila</h3><div class="grafico"><canvas id="g-temi-adesso"></canvas></div>
+      <p class="muto">Quota del punteggio nazionale per tema, sulle prime 25 notizie.</p></div>
+  </div>
+  <h3 style="margin:26px 0 12px">Testata per testata</h3>
+  <div class="griglia g3" id="testate-adesso"></div>
+</section>
+
+<section class="scheda" id="s-rapporto">
+  <h2>Rapporto del giorno</h2>
+  <p class="sotto">Si riscrive a ogni giro di lettura, cioè ogni volta che una homepage cambia. Dice quale notizia è rimasta più a lungo in prima fila, a livello nazionale e su ogni giornale.</p>
+  <div class="barra-filtri"><label for="giorno-r">Giorno</label><select id="giorno-r"></select><span class="muto" id="r-finestra"></span></div>
+  <div class="card" id="r-vincitrice" style="margin-bottom:14px"></div>
+  <div class="griglia g2">
+    <div class="card"><h3>Andamento delle notizie principali</h3><div class="legenda" id="leg-serie"></div><div class="grafico"><canvas id="g-serie"></canvas></div></div>
+    <div class="card"><h3>Classifica del giorno</h3><ol class="classifica" id="r-naz"></ol></div>
+  </div>
+  <h3 style="margin:26px 0 12px">Cosa è rimasto in apertura, giornale per giornale</h3>
+  <div class="card scorri"><table id="r-testate"></table></div>
+</section>
+
+<section class="scheda" id="s-interazioni">
+  <h2>Notizie più lette e discusse</h2>
+  <p class="sotto">I giornali non pubblicano click e condivisioni. L'indice combina tre segnali che invece si possono osservare: le classifiche «più letti» dei giornali stessi (45%), le ricerche su Google in Italia (25%) e quanto la notizia viene ripresa e commentata dalle altre testate (30%).</p>
+  <div class="barra-filtri"><label for="giorno-i">Giorno</label><select id="giorno-i"></select></div>
+  <div class="griglia g2">
+    <div class="card"><h3>Classifica generale</h3><ol class="classifica" id="i-classifica"></ol></div>
+    <div class="card"><h3>Peso di ogni tema sull'interesse</h3><div class="grafico"><canvas id="g-cat-int"></canvas></div>
+      <p class="muto" id="i-fonti"></p></div>
+  </div>
+  <h3 style="margin:26px 0 12px">Classifica per categoria</h3>
+  <div class="griglia g3" id="i-percat"></div>
+</section>
+
+<section class="scheda" id="s-modelli">
+  <h2>Su quale modello si basano i giornali online</h2>
+  <p class="sotto">Ogni testata viene descritta da numeri misurati sulle sue homepage: che temi mette in alto, quanto spesso cambia, quanto resta allineata all'agenda degli altri, se arriva prima o dopo. Le testate con numeri simili formano un modello.</p>
+  <div id="m-avviso"></div>
+  <div class="griglia g2">
+    <div class="card"><h3>Mappa dei modelli</h3><div class="legenda" id="leg-mappa"></div><div class="grafico alto"><canvas id="g-mappa"></canvas></div>
+      <p class="muto" id="m-varianza"></p></div>
+    <div class="card"><h3>I modelli trovati</h3><div id="m-gruppi"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Di cosa parla ogni homepage</h3><div class="legenda" id="leg-mix"></div><div class="grafico alto"><canvas id="g-mix"></canvas></div></div>
+  <div class="griglia g2" style="margin-top:14px">
+    <div class="card"><h3>Allineamento all'agenda ed esclusività</h3><div class="grafico"><canvas id="g-agenda"></canvas></div>
+      <p class="muto">In alto a destra chi segue la stessa agenda di tutti; in basso a sinistra chi punta su notizie proprie.</p></div>
+    <div class="card"><h3>Arrivo sulle notizie condivise</h3><div class="grafico"><canvas id="g-anticipo"></canvas></div>
+      <p class="muto">Minuti rispetto alla mediana delle testate: a sinistra chi pubblica prima.</p></div>
+    <div class="card"><h3>Quanto resta un titolo tra i primi 5</h3><div class="barra-filtri"><select id="sel-sopr"></select></div><div class="grafico"><canvas id="g-sopr"></canvas></div>
+      <p class="muto">Quota di titoli ancora tra i primi cinque dopo t ore dalla loro comparsa.</p></div>
+    <div class="card"><h3>Varietà dei temi (entropia)</h3><div class="grafico"><canvas id="g-entropia"></canvas></div>
+      <p class="muto">1 = attenzione distribuita su tutti i temi, 0 = un solo tema.</p></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Somiglianza delle agende</h3><p class="muto">Quota di notizie in comune fra i primi 10 titoli (indice di Jaccard). Più scuro = agende più simili.</p><div class="scorri"><table class="mat" id="m-matrice"></table></div></div>
+  <div class="card scorri" style="margin-top:14px"><h3>Tutti i numeri</h3><table id="m-tabella"></table></div>
+</section>
+
+<section class="scheda" id="s-cadute">
+  <h2>Le notizie che scivolano in fondo, e perché</h2>
+  <p class="sotto">Titoli arrivati tra i primi cinque di una homepage che poi scendono oltre il ventesimo posto o spariscono. Per ognuno si controlla cosa è successo nel momento della caduta.</p>
+  <div id="c-avviso"></div>
+  <div class="griglia g2">
+    <div class="card"><h3>Le cause</h3><div class="grafico"><canvas id="g-cause"></canvas></div></div>
+    <div class="card"><h3>Quanto resta in alto ogni tema prima di cadere</h3><div class="grafico"><canvas id="g-cad-cat"></canvas></div>
+      <p class="muto">Minuti mediani tra i primi cinque.</p></div>
+  </div>
+  <div class="card scorri" style="margin-top:14px"><h3>Classifica delle cadute più rapide</h3><table id="c-eventi"></table></div>
+  <div class="card scorri" style="margin-top:14px"><h3>Per testata</h3><table id="c-testate"></table></div>
+</section>
+
+<section class="scheda metodo" id="s-metodo">
+  <h2>Come funziona</h2>
+  <h3>Raccolta</h3>
+  <p>Ogni 15 minuti il programma apre le homepage di 25 testate nazionali e salva l'ordine dei titoli. La posizione non è solo l'ordine nella pagina: un titolo in &lt;h1&gt; o in un blocco «apertura» pesa più di un link in fondo a una colonna. Libero e RaiNews non si lasciano leggere in homepage: per loro si usa il feed RSS, che è in ordine cronologico, quindi entrano nei raggruppamenti e nelle interazioni ma non nelle classifiche di posizione. Fanpage e Adnkronos bloccano la lettura automatica e sono esclusi.</p>
+  <h3>Dalla pagina alla notizia</h3>
+  <p>Lo stesso fatto ha titoli diversi su ogni giornale. Gli articoli vengono confrontati per parole significative (somiglianza del coseno pesata TF-IDF): sopra la soglia finiscono nella stessa notizia. Le categorie vengono dalla sezione nell'indirizzo (/politica/, /esteri/…) e, se manca, dalle parole del titolo.</p>
+  <h3>Interazioni: cosa si misura davvero</h3>
+  <p>Click e condivisioni sono dati privati dei giornali e dei social. Qui si usano segnali pubblici: le classifiche «più letti/visti» che alcune testate mostrano (oggi Messaggero, Mattino, QN, Open, ANSA, Repubblica), le ricerche di tendenza di Google in Italia e la ripresa della notizia da parte delle altre testate. È una stima dell'interesse, non un conteggio di click.</p>
+  <h3>Modelli informativi</h3>
+  <ul>
+    <li><b>Varietà</b>: entropia di Shannon della distribuzione dei temi, normalizzata tra 0 e 1.</li>
+    <li><b>Ricambio</b>: quota dei primi 10 titoli sostituita in un'ora.</li>
+    <li><b>Emivita</b>: minuti mediani che un titolo passa tra i primi 5.</li>
+    <li><b>Allineamento</b>: indice di Jaccard tra le prime 10 notizie della testata e le prime 10 nazionali.</li>
+    <li><b>Anticipo</b>: minuti di differenza dalla mediana delle testate nel pubblicare la stessa notizia.</li>
+    <li><b>Esclusività</b>: quota delle prime 10 notizie che nessun altro ha.</li>
+  </ul>
+  <p>Le caratteristiche vengono standardizzate; la mappa è un'analisi delle componenti principali e i modelli sono gruppi trovati con k-medie. Con pochi giorni di dati i gruppi sono instabili: diventano affidabili dopo circa una settimana.</p>
+  <h3>Cadute</h3>
+  <p>Per ogni titolo uscito dai primi posti si verificano sei cause: sostituito da un aggiornamento della stessa notizia, scalzato da una notizia nuova, nessun'altra testata l'ha ripresa, nessun segnale di lettura o ricerca, notizia spenta anche altrove, fine del ciclo naturale. Una caduta può avere più cause. Il confronto per tema diventa significativo dopo tre giorni di dati.</p>
+</section>
+</main>
+<div class="tip" id="tip"></div>
+
+<script>
+const D = window.DATI;
+const $ = s => document.querySelector(s);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// Temi raggruppati in 8 colori fissi + «Altro» grigio (mai più di 8 tinte)
+const GRUPPI = ["Politica","Esteri","Cronaca","Economia","Sport","Cultura e spettacoli","Scienza, salute, ambiente","Opinioni"];
+const VERSO = {"Scienza e tecnologia":"Scienza, salute, ambiente","Salute":"Scienza, salute, ambiente","Ambiente e meteo":"Scienza, salute, ambiente"};
+const gruppo = c => VERSO[c] || (GRUPPI.includes(c) ? c : "Altro");
+const colGruppo = g => g === "Altro" ? css("--other") : css("--s" + (GRUPPI.indexOf(g) + 1));
+const colCat = c => colGruppo(gruppo(c));
+const serie = i => css("--s" + (i % 8 + 1));
+
+if (!D) { document.querySelector("main").innerHTML = '<p class="avviso">Ancora nessun dato: esegui aggiorna.sh</p>'; throw 0; }
+
+const ritardo = D.stato.ultimo_ts ? Math.round((Date.now() / 1000 - D.stato.ultimo_ts) / 60) : 0;
+if (ritardo > 45) document.querySelector("main").insertAdjacentHTML("afterbegin", `<p class="avviso">L'ultima lettura è di ${ritardo} minuti fa: il motore in cloud potrebbe essersi fermato.</p>`);
+$("#stato").innerHTML = `Ultima lettura <b>${D.stato.ultimo_giro}</b> · ${D.stato.lette_ultimo}/${D.stato.testate} testate · dati dal ${D.stato.inizio} (${D.stato.ore_dati} ore, ${D.stato.giri} giri) · ${D.stato.notizie} notizie`;
+
+// schede
+const schede = document.querySelectorAll("#schede button");
+function apri(id){
+  schede.forEach(b => b.setAttribute("aria-selected", b.dataset.s === id));
+  document.querySelectorAll(".scheda").forEach(s => s.classList.toggle("attiva", s.id === "s-" + id));
+  try { localStorage.setItem("oss-scheda", id); } catch(e) {}
+  disegna(id);
+}
+schede.forEach(b => b.onclick = () => apri(b.dataset.s));
+
+// Chart.js: stile comune
+Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+Chart.defaults.font.size = 12;
+Chart.defaults.color = css("--ink-2");
+Chart.defaults.borderColor = css("--line");
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.plugins.tooltip.backgroundColor = css("--ink");
+Chart.defaults.plugins.tooltip.titleColor = css("--surface");
+Chart.defaults.plugins.tooltip.bodyColor = css("--surface");
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
+Chart.defaults.maintainAspectRatio = false;
+const grafici = {};
+function grafico(id, cfg){ if (grafici[id]) grafici[id].destroy(); grafici[id] = new Chart(document.getElementById(id), cfg); }
+const asseY = extra => Object.assign({grid:{color:css("--line")}, border:{display:false}}, extra||{});
+const asseX = extra => Object.assign({grid:{display:false}, border:{color:css("--line")}}, extra||{});
+const corto = (s, n=60) => s.length > n ? s.slice(0, n - 1) + "…" : s;
+function legenda(el, voci){ el.innerHTML = voci.map(([t,c]) => `<span><i class="pallino" style="background:${c}"></i>${esc(t)}</span>`).join(""); }
+
+const giorni = Object.keys(D.rapporti).sort().reverse();
+const fmtGiorno = g => new Date(g + "T12:00").toLocaleDateString("it-IT", {weekday:"long", day:"numeric", month:"long"});
+for (const id of ["#giorno-r", "#giorno-i"]) {
+  $(id).innerHTML = giorni.map(g => `<option value="${g}">${fmtGiorno(g)}</option>`).join("");
+}
+$("#giorno-r").onchange = () => disegna("rapporto");
+$("#giorno-i").onchange = () => disegna("interazioni");
+
+const fatti = {};
+function disegna(id){
+  if (id === "adesso") adesso();
+  if (id === "rapporto") rapporto();
+  if (id === "interazioni") interazioni();
+  if (id === "modelli" && !fatti.modelli) { modelli(); fatti.modelli = 1; }
+  if (id === "cadute" && !fatti.cadute) { cadute(); fatti.cadute = 1; }
+}
+
+// ---------------------------------------------------------------- ADESSO
+function adesso(){
+  const naz = D.adesso.nazionale;
+  $("#naz-adesso").innerHTML = naz.slice(0, 15).map((n, i) => `<li>
+    <span class="num">${i+1}</span>
+    <div><div class="tit">${esc(n.titolo)}</div>
+      <div class="meta"><span class="etich"><i class="pallino" style="background:${colCat(n.categoria)}"></i>${esc(n.categoria)}</span>
+      su ${n.testate} homepage${n.aperture.length ? ` · apertura di ${esc(n.aperture.join(", "))}` : ""}</div></div>
+    <span class="val">${n.punti.toFixed(1)}</span></li>`).join("");
+  const peso = {};
+  naz.forEach(n => { const g = gruppo(n.categoria); peso[g] = (peso[g] || 0) + n.punti; });
+  const tot = Object.values(peso).reduce((a,b) => a + b, 0) || 1;
+  const ord = [...GRUPPI, "Altro"].filter(g => peso[g]);
+  grafico("g-temi-adesso", {type:"bar", data:{labels:ord, datasets:[{data:ord.map(g => +(100*peso[g]/tot).toFixed(1)),
+    backgroundColor:ord.map(colGruppo), borderRadius:4, barThickness:16}]},
+    options:{indexAxis:"y", scales:{x:asseY({ticks:{callback:v => v + "%"}}), y:asseX()},
+      plugins:{tooltip:{callbacks:{label:c => c.parsed.x + "% del punteggio"}}}}});
+  $("#testate-adesso").innerHTML = D.adesso.testate.map(t => `<div class="card testata">
+    <h3><a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.nome)}</a><span class="etich">${esc(t.tipo)}</span></h3>
+    <div class="muto" style="margin:-4px 0 8px">${t.letta ? `letta ${t.letta}` : "non letta"}${t.aggiornata ? ` · homepage cambiata alle ${t.aggiornata}` : ""} · ${t.aggiornamenti_oggi} cambi oggi${t.rss ? " · da RSS, ordine cronologico" : ""}</div>
+    <ol>${t.voci.slice(0, 6).map(v => `<li class="${v.r === 1 && !t.rss ? "apre" : ""}"><span class="num" style="font-size:13px">${v.r}</span>
+      <span><i class="pallino" style="background:${colCat(v.c)}" title="${esc(v.c)}"></i><a href="${esc(v.u)}" target="_blank" rel="noopener">${esc(v.t)}</a>${v.q > 1 ? ` <span class="muto">· su ${v.q} testate</span>` : ""}</span></li>`).join("") || '<li class="muto">Nessun titolo letto</li>'}</ol></div>`).join("");
+}
+
+// ---------------------------------------------------------------- RAPPORTO
+function rapporto(){
+  const g = $("#giorno-r").value, R = D.rapporti[g];
+  if (!R) return;
+  $("#r-finestra").textContent = `dalle ${R.dalle} alle ${R.alle} · ${R.giri} letture`;
+  const v = R.nazionale[0];
+  $("#r-vincitrice").innerHTML = v ? `<div class="muto">Notizia rimasta in prima fila a livello nazionale</div>
+    <div style="font-size:22px;font-weight:650;letter-spacing:-.01em;margin:4px 0">${esc(v.titolo)}</div>
+    <div class="meta"><span class="etich"><i class="pallino" style="background:${colCat(v.categoria)}"></i>${esc(v.categoria)}</span>
+    ${v.minuti_primo} minuti al primo posto nazionale · ripresa da ${v.testate} testate · ${v.punti_ora} punti-ora</div>` : "Nessun dato";
+  $("#r-naz").innerHTML = R.nazionale.slice(0, 10).map((n, i) => `<li><span class="num">${i+1}</span>
+    <div><div class="tit">${esc(n.titolo)}</div><div class="meta">${esc(n.categoria)} · ${n.minuti_primo ? n.minuti_primo + " min al primo posto · " : ""}${n.testate} testate</div></div>
+    <span class="val">${n.punti_ora}</span></li>`).join("");
+  const S = R.serie;
+  legenda($("#leg-serie"), S.linee.map((l, i) => [corto(l.titolo, 48), serie(i)]));
+  grafico("g-serie", {type:"line", data:{labels:S.orari, datasets:S.linee.map((l, i) => ({label:corto(l.titolo, 70), data:l.valori,
+    borderColor:serie(i), backgroundColor:serie(i), borderWidth:2, pointRadius:0, pointHoverRadius:4, tension:.25}))},
+    options:{interaction:{mode:"index", intersect:false}, scales:{y:asseY({beginAtZero:true, title:{display:true, text:"punteggio nazionale (0-10)"}}), x:asseX({ticks:{maxTicksLimit:12}})}}});
+  const righe = R.testate.map(t => t.vuota ? `<tr><td><b>${esc(t.nome)}</b></td><td colspan="4" class="muto">nessuna lettura</td></tr>` :
+    `<tr><td><b>${esc(t.nome)}</b>${t.rss ? '<br><span class="muto">RSS</span>' : ""}</td>
+      <td>${t.apertura ? `${esc(t.apertura.titolo)}<div class="meta">${t.apertura.minuti} min in apertura</div>` : "-"}</td>
+      <td>${t.prima_fila.slice(0, 3).map(n => `<div style="margin-bottom:4px">${esc(corto(n.titolo, 90))} <span class="muto">${n.minuti}′</span></div>`).join("")}</td>
+      <td class="n">${t.aperture_diverse}</td><td class="n">${t.aggiornamenti}</td></tr>`);
+  $("#r-testate").innerHTML = `<tr><th>Testata</th><th>Rimasta più a lungo in apertura</th><th>Più a lungo nei primi 5</th><th>Aperture diverse</th><th>Cambi homepage</th></tr>` + righe.join("");
+}
+
+// ---------------------------------------------------------------- INTERAZIONI
+function riga_int(n, i){
+  const segn = [];
+  if (n.nei_piu_letti.length) segn.push("più letti su " + n.nei_piu_letti.join(", "));
+  if (n.ricerche.length) segn.push("cercata su Google: «" + n.ricerche.join("», «") + "»" + (n.traffico ? ` (${n.traffico.toLocaleString("it-IT")}+)` : ""));
+  segn.push(`${n.testate} testate, ${n.articoli} articoli`);
+  return `<li><span class="num">${i+1}</span><div><div class="tit">${esc(n.titolo)}</div>
+    <div class="meta">${esc(segn.join(" · "))}</div>
+    <div class="pila" title="lettura ${n.lettura} · ricerca ${n.ricerca} · dibattito ${n.dibattito}">
+      <span style="width:${0.45*n.lettura}%;background:var(--s1)"></span><span style="width:${0.25*n.ricerca}%;background:var(--s2)"></span><span style="width:${0.30*n.dibattito}%;background:var(--s3)"></span></div></div>
+    <span class="val">${n.indice.toFixed(0)}</span></li>`;
+}
+function interazioni(){
+  const I = D.interazioni[$("#giorno-i").value];
+  if (!I) return;
+  $("#i-classifica").innerHTML = `<div class="legenda"><span><i class="pallino" style="background:var(--s1)"></i>lettura</span><span><i class="pallino" style="background:var(--s2)"></i>ricerca</span><span><i class="pallino" style="background:var(--s3)"></i>dibattito</span></div>` +
+    I.classifica.slice(0, 12).map(riga_int).join("");
+  const pc = I.peso_categorie;
+  grafico("g-cat-int", {type:"bar", data:{labels:pc.map(x => x[0]), datasets:[{data:pc.map(x => x[1]), backgroundColor:pc.map(x => colCat(x[0])), borderRadius:4, barThickness:16}]},
+    options:{indexAxis:"y", scales:{x:asseY(), y:asseX()}, plugins:{tooltip:{callbacks:{label:c => "somma indice: " + c.parsed.x}}}}});
+  $("#i-fonti").textContent = "Classifiche «più letti» lette oggi: " + (I.fonti_letti.join(", ") || "nessuna") +
+    (I.termini.length ? ". Ricerche di tendenza: " + I.termini.slice(0, 8).map(t => t[0]).join(", ") : "");
+  const cats = Object.keys(I.per_categoria).sort((a, b) => (I.per_categoria[b][0]?.indice || 0) - (I.per_categoria[a][0]?.indice || 0));
+  $("#i-percat").innerHTML = cats.map(c => `<div class="card"><h3><span><i class="pallino" style="background:${colCat(c)}"></i>${esc(c)}</span></h3>
+    <ol class="classifica">${I.per_categoria[c].map(riga_int).join("")}</ol></div>`).join("");
+}
+
+// ---------------------------------------------------------------- MODELLI
+function modelli(){
+  const M = D.modelli, C = M.caratteristiche, nomi = M.nomi;
+  if (D.stato.ore_dati < 48) $("#m-avviso").innerHTML = `<p class="avviso">Dati raccolti da ${D.stato.ore_dati} ore. I modelli si stabilizzano dopo qualche giorno: per ora leggili come una prima indicazione.</p>`;
+  // mappa PCA
+  const gr = [...new Set(M.mappa.map(p => p.gruppo))];
+  const forme = ["circle", "rect", "triangle", "rectRot"];
+  const nomeGr = j => (M.gruppi.find(x => x.gruppo === j) || {}).nome || "Gruppo " + (j + 1);
+  legenda($("#leg-mappa"), gr.map(j => [nomeGr(j), serie(j)]));
+  grafico("g-mappa", {type:"scatter", data:{datasets:gr.map(j => ({label:nomeGr(j), data:M.mappa.filter(p => p.gruppo === j).map(p => ({x:p.x, y:p.y, nome:p.nome})),
+    backgroundColor:serie(j), borderColor:css("--surface"), borderWidth:2, pointRadius:8, pointHoverRadius:10, pointStyle:forme[j % 4]}))},
+    options:{scales:{x:asseY({title:{display:true, text:"componente 1"}}), y:asseY({title:{display:true, text:"componente 2"}})},
+      plugins:{tooltip:{callbacks:{label:c => c.raw.nome + " · " + c.dataset.label}}}},
+    plugins:[{id:"etichette", afterDatasetsDraw(ch){ const ctx = ch.ctx; ctx.save(); ctx.font = "11.5px " + Chart.defaults.font.family; ctx.fillStyle = css("--ink-2");
+      ch.data.datasets.forEach((ds, i) => ch.getDatasetMeta(i).data.forEach((pt, k) => ctx.fillText(ds.data[k].nome, pt.x + 11, pt.y + 4))); ctx.restore(); }}]});
+  if (M.varianza) $("#m-varianza").textContent = `Le due componenti spiegano il ${M.varianza[0]}% e il ${M.varianza[1]}% delle differenze tra testate. ` +
+    "Pesi principali: " + [...M.carichi].sort((a, b) => Math.abs(b.x) - Math.abs(a.x)).slice(0, 3).map(c => `${c.car.replace("q_", "quota ")} (${c.x > 0 ? "→" : "←"})`).join(", ") + " sull'asse orizzontale.";
+  $("#m-gruppi").innerHTML = M.gruppi.map(g => `<div class="modello"><div class="tit"><i class="pallino" style="background:${serie(g.gruppo)}"></i>${esc(g.nome)}</div>
+    <div class="meta">${esc(g.tratti.join(" · "))}</div><div style="margin-top:6px;font-size:14px">${esc(g.membri.join(", "))}</div></div>`).join("") || '<p class="muto">Servono più dati.</p>';
+  // mix categorie (100% impilato)
+  const ids = Object.keys(M.mix).filter(t => C[t]);
+  const mixG = t => { const o = {}; for (const [c, v] of Object.entries(M.mix[t])) { const g = gruppo(c); o[g] = (o[g] || 0) + v; } return o; };
+  const ordine = [...ids].sort((a, b) => (mixG(b)["Politica"] || 0) - (mixG(a)["Politica"] || 0));
+  const gruppiTutti = [...GRUPPI, "Altro"];
+  legenda($("#leg-mix"), gruppiTutti.map(g => [g, colGruppo(g)]));
+  grafico("g-mix", {type:"bar", data:{labels:ordine.map(t => nomi[t]), datasets:gruppiTutti.map(g => ({label:g, data:ordine.map(t => +(mixG(t)[g] || 0).toFixed(1)),
+    backgroundColor:colGruppo(g), borderColor:css("--surface"), borderWidth:{right:2}, borderSkipped:false, barThickness:14}))},
+    options:{indexAxis:"y", scales:{x:asseY({stacked:true, max:100, ticks:{callback:v => v + "%"}}), y:asseX({stacked:true})},
+      plugins:{tooltip:{callbacks:{label:c => `${c.dataset.label}: ${c.parsed.x}%`}}}}});
+  // allineamento vs esclusività
+  const pts = ids.filter(t => C[t].allineamento != null).map(t => ({x:+(100*C[t].esclusivita).toFixed(1), y:+(100*C[t].allineamento).toFixed(1), nome:nomi[t]}));
+  grafico("g-agenda", {type:"scatter", data:{datasets:[{data:pts, backgroundColor:css("--s1"), borderColor:css("--surface"), borderWidth:2, pointRadius:7}]},
+    options:{scales:{x:asseY({reverse:true, title:{display:true, text:"esclusività % (← più esclusive)"}}), y:asseY({title:{display:true, text:"allineamento all'agenda nazionale %"}})},
+      plugins:{tooltip:{callbacks:{label:c => `${c.raw.nome}: allineamento ${c.raw.y}%, esclusive ${c.raw.x}%`}}}},
+    plugins:[{id:"et", afterDatasetsDraw(ch){ const ctx = ch.ctx; ctx.save(); ctx.font = "11px " + Chart.defaults.font.family; ctx.fillStyle = css("--ink-2");
+      ch.getDatasetMeta(0).data.forEach((p, k) => ctx.fillText(pts[k].nome, p.x + 9, p.y + 4)); ctx.restore(); }}]});
+  // anticipo
+  const an = ids.filter(t => C[t].anticipo != null).sort((a, b) => C[a].anticipo - C[b].anticipo);
+  grafico("g-anticipo", {type:"bar", data:{labels:an.map(t => nomi[t]), datasets:[{data:an.map(t => C[t].anticipo),
+    backgroundColor:an.map(t => C[t].anticipo < 0 ? css("--s1") : css("--s8")), borderRadius:4, barThickness:12}]},
+    options:{indexAxis:"y", scales:{x:asseY({title:{display:true, text:"minuti (negativo = prima degli altri)"}}), y:asseX({ticks:{autoSkip:false, font:{size:11}}})},
+      plugins:{tooltip:{callbacks:{label:c => (c.parsed.x < 0 ? `${-c.parsed.x} minuti prima` : `${c.parsed.x} minuti dopo`) + " della mediana"}}}}});
+  // sopravvivenza
+  const sel = $("#sel-sopr");
+  const conCurva = ids.filter(t => (M.sopravvivenza[t] || []).length);
+  sel.innerHTML = conCurva.map(t => `<option value="${t}">${esc(nomi[t])}</option>`).join("");
+  const mediana = (M.sopravvivenza[conCurva[0]] || []).map((p, k) => { const v = conCurva.map(t => M.sopravvivenza[t][k][1]).sort((a, b) => a - b); return [p[0], v[Math.floor(v.length / 2)]]; });
+  const sopr = () => { const c = M.sopravvivenza[sel.value] || [];
+    grafico("g-sopr", {type:"line", data:{labels:c.map(p => p[0] + "h"), datasets:[
+      {label:nomi[sel.value], data:c.map(p => +(100*p[1]).toFixed(0)), borderColor:css("--s1"), backgroundColor:css("--s1"), borderWidth:2, pointRadius:3, stepped:true},
+      {label:"mediana delle testate", data:mediana.map(p => +(100*p[1]).toFixed(0)), borderColor:css("--ink-3"), borderDash:[4,4], borderWidth:2, pointRadius:0, stepped:true}]},
+      options:{plugins:{legend:{display:true, labels:{boxWidth:10, boxHeight:10}}, tooltip:{mode:"index", intersect:false}}, scales:{y:asseY({min:0, max:100, ticks:{callback:v => v + "%"}}), x:asseX({title:{display:true, text:"ore dalla comparsa"}})}}}); };
+  sel.onchange = sopr; sopr();
+  // entropia
+  const en = [...ids].sort((a, b) => C[b].diversita - C[a].diversita);
+  grafico("g-entropia", {type:"bar", data:{labels:en.map(t => nomi[t]), datasets:[{data:en.map(t => C[t].diversita), backgroundColor:css("--s3"), borderRadius:4, barThickness:12}]},
+    options:{indexAxis:"y", scales:{x:asseY({min:0, max:1}), y:asseX({ticks:{autoSkip:false, font:{size:11}}})}}});
+  // matrice
+  const scuro = getComputedStyle(document.documentElement).colorScheme === "dark";
+  const MT = M.matrice, scala = ["--seq-0","--seq-1","--seq-2","--seq-3","--seq-4","--seq-5"].map(css);
+  const maxv = Math.max(...MT.valori.flatMap((r, i) => r.filter((_, j) => i !== j)), 0.01);
+  $("#m-matrice").innerHTML = `<tr><th></th>${MT.testate.map(t => `<th class="v">${esc(t)}</th>`).join("")}</tr>` +
+    MT.valori.map((r, i) => `<tr><th style="text-align:right">${esc(MT.testate[i])}</th>${r.map((v, j) => { if (i === j) return `<td style="background:var(--surface-2)"></td>`;
+      const k = Math.min(5, Math.round(5 * v / maxv)); return `<td style="background:${scala[k]};color:${k >= 3 ? (scuro ? "#0b0b0b" : "#fff") : css("--ink-2")}" data-tip="${esc(MT.testate[i])} ↔ ${esc(MT.testate[j])}: ${(100*v).toFixed(0)}% notizie in comune">${(100*v).toFixed(0)}</td>`; }).join("")}</tr>`).join("");
+  // tabella
+  const col = [["diversita","Varietà",v => v?.toFixed(2)],["ricambio","Ricambio/ora",v => v == null ? "-" : (100*v).toFixed(0) + "%"],["emivita","Emivita top 5",v => v == null ? "-" : v + "′"],
+    ["allineamento","Allineamento",v => v == null ? "-" : (100*v).toFixed(0) + "%"],["esclusivita","Esclusive",v => v == null ? "-" : (100*v).toFixed(0) + "%"],["anticipo","Anticipo",v => v == null ? "-" : v + "′"],
+    ["virgolettati","Titoli a virgolettato",v => (100*v).toFixed(0) + "%"],["domande","Titoli a domanda",v => (100*v).toFixed(0) + "%"],["parole_titolo","Parole/titolo",v => v ?? "-"],
+    ["aggiornamenti_ora","Cambi homepage/ora",v => v],["coerenza_lettori","Più letti già in alto",v => v == null ? "-" : (100*v).toFixed(0) + "%"]];
+  $("#m-tabella").innerHTML = `<tr><th>Testata</th>${col.map(c => `<th>${c[1]}</th>`).join("")}</tr>` +
+    ids.map(t => `<tr><td><b>${esc(nomi[t])}</b></td>${col.map(c => `<td class="n">${c[2](C[t][c[0]])}</td>`).join("")}</tr>`).join("");
+}
+
+// ---------------------------------------------------------------- CADUTE
+const NOMI_CAUSE = {aggiornamento:"Sostituita da un aggiornamento", scalzata:"Scalzata da una notizia nuova", isolata:"Nessun'altra testata l'ha ripresa",
+  senza_lettori:"Nessun segnale di lettura o ricerca", spenta:"Spenta anche sulle altre testate", ciclo:"Fine del ciclo naturale"};
+function cadute(){
+  const K = D.cadute;
+  if (K.preliminare) $("#c-avviso").innerHTML = `<p class="avviso">Analisi preliminare: ${K.ore_dati} ore di dati su ${K.giorni_richiesti * 24} necessarie. La classifica si consolida dopo ${K.giorni_richiesti} giorni di osservazione.</p>`;
+  if (!K.totale) { $("#c-eventi").innerHTML = '<tr><td class="muto">Nessuna caduta ancora osservata: servono alcune ore di letture consecutive.</td></tr>'; }
+  const cz = K.cause;
+  grafico("g-cause", {type:"bar", data:{labels:cz.map(c => NOMI_CAUSE[c[0]] || c[0]), datasets:[{data:cz.map(c => +(100*c[1]/Math.max(1, K.totale)).toFixed(0)), backgroundColor:css("--s1"), borderRadius:4, barThickness:16}]},
+    options:{indexAxis:"y", scales:{x:asseY({ticks:{callback:v => v + "%"}}), y:asseX()}, plugins:{tooltip:{callbacks:{label:c => c.parsed.x + "% delle cadute"}}}}});
+  const pc = K.per_categoria;
+  grafico("g-cad-cat", {type:"bar", data:{labels:pc.map(c => c.categoria), datasets:[{data:pc.map(c => c.mediana_minuti_top5), backgroundColor:pc.map(c => colCat(c.categoria)), borderRadius:4, barThickness:16}]},
+    options:{indexAxis:"y", scales:{x:asseY({title:{display:true, text:"minuti mediani nei primi 5"}}), y:asseX()},
+      plugins:{tooltip:{callbacks:{label:c => `${c.parsed.x} minuti · ${pc[c.dataIndex].cadute} cadute, ${pc[c.dataIndex].veloci} entro 3 ore`}}}}});
+  if (K.totale) $("#c-eventi").innerHTML = `<tr><th>#</th><th>Notizia</th><th>Testata</th><th>Picco</th><th>Minuti nei primi 5</th><th>Ore alla caduta</th><th>Perché</th></tr>` +
+    K.eventi.slice(0, 60).map((e, i) => `<tr><td class="n">${i+1}</td><td><a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.titolo)}</a><div class="meta">${esc(e.categoria)} · ${e.quando}</div></td>
+      <td>${esc(e.testata)}</td><td class="n">${e.picco}°</td><td class="n">${e.minuti_top5}</td><td class="n">${e.ore_alla_caduta}</td><td><ul class="cause">${e.cause.map(c => `<li>${esc(c)}</li>`).join("")}</ul></td></tr>`).join("");
+  $("#c-testate").innerHTML = `<tr><th>Testata</th><th>Cadute</th><th>Minuti mediani nei primi 5</th><th>Causa più frequente</th></tr>` +
+    K.per_testata.map(t => `<tr><td><b>${esc(t.testata)}</b></td><td class="n">${t.cadute}</td><td class="n">${t.mediana_minuti_top5}</td><td>${esc(NOMI_CAUSE[t.causa_tipica])}</td></tr>`).join("");
+}
+
+// tooltip per le celle della matrice
+const tip = $("#tip");
+document.addEventListener("mousemove", e => { const t = e.target.closest("[data-tip]");
+  if (!t) { tip.style.display = "none"; return; }
+  tip.textContent = t.dataset.tip; tip.style.display = "block"; tip.style.left = Math.min(e.clientX + 12, innerWidth - 330) + "px"; tip.style.top = (e.clientY + 14) + "px"; });
+
+let iniziale = "adesso";
+try { iniziale = localStorage.getItem("oss-scheda") || "adesso"; } catch(e) {}
+apri(document.querySelector(`[data-s="${iniziale}"]`) ? iniziale : "adesso");
+</script>
+</body>
+</html>
