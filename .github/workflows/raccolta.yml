@@ -26,7 +26,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Scarica l'archivio
+      # l'archivio passa da un giro all'altro nella cache di GitHub (gratis);
+      # da Supabase si scarica solo se la cache manca, per non consumare traffico
+      - name: Archivio dal giro precedente
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: dati/osservatorio.sqlite
+          key: archivio-${{ github.run_id }}
+          restore-keys: archivio-
+
+      - name: Scarica l'archivio (solo se manca)
+        if: steps.cache.outputs.cache-matched-key == ''
         run: python3 archivio.py scarica
 
       - name: Leggi le testate
@@ -37,6 +48,12 @@ jobs:
 
       - name: Salva l'archivio e pubblica il pannello
         run: python3 archivio.py carica
+
+      - name: Archivio per il giro successivo
+        uses: actions/cache/save@v4
+        with:
+          path: dati/osservatorio.sqlite
+          key: archivio-${{ github.run_id }}
 
       # GitHub sospende i giri programmati dopo 60 giorni senza attività nel repository:
       # ogni 40 giorni un commit vuoto lo tiene sveglio
